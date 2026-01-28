@@ -1,6 +1,6 @@
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langgraph.checkpoint.postgres import PostgresSaver
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 from app.core.config import settings
 from app.tools.faq_tool import search_faq_tool
 from app.tools.scraper_tool import scrape_website_tool
@@ -38,10 +38,10 @@ def create_e2m_agent():
     llm = get_llm()
     checkpointer = get_checkpointer()
     
-    return create_react_agent(
+    return create_agent(
         model=llm,
         tools=tools,
-        state_modifier=SYSTEM_PROMPT,
+        system_prompt=SYSTEM_PROMPT,
         checkpointer=checkpointer
     )
 

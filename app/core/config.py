@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str
-    SYNC_DATABASE_URL: str
+    SYNC_DATABASE_URL: str = ""
     
     # Supabase
     SUPABASE_URL: str

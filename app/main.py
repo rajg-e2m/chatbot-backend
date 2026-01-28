@@ -1,13 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.schemas import ChatRequest, ChatResponse, ChatInitRequest, LeadRegisterRequest
+from app.core.database import get_db
+from app.core.exceptions import ChatbotException
 from app.services import process_message, init_chat, register_lead
+from fastapi.responses import JSONResponse
 
 app = FastAPI(
-    title="E2M Solutions Lead-Generating Chatbot",
+    title=settings.APP_NAME,
     description="A professional sales assistant for E2M Solutions",
-    version="1.0.0"
+    version=settings.APP_VERSION
 )
 
 app.add_middleware(
@@ -18,51 +22,56 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Exception Handler
+@app.exception_handler(ChatbotException)
+async def chatbot_exception_handler(request, exc: ChatbotException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.message},
+    )
 
 @app.get("/")
 async def root():
     return {
         "message": "E2M Solutions Lead-Generating Chatbot API",
-        "version": "1.0.0",
+        "version": settings.APP_VERSION,
         "docs": "/docs"
     }
-
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "E2M-Chatbot"}
 
-
 @app.post("/chat/init", response_model=ChatResponse)
-async def initialize_chat(request: ChatInitRequest):
-    try:
-        result = await init_chat(thread_id=request.thread_id)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+async def initialize_chat(
+    request: ChatInitRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await init_chat(db=db, thread_id=request.thread_id)
+    return result
 
 @app.post("/chat/register")
-async def register(request: LeadRegisterRequest):
-    try:
-        result = await register_lead(
-            name=request.name,
-            email=request.email,
-            phone=request.phone,
-            thread_id=request.thread_id
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+async def register(
+    request: LeadRegisterRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await register_lead(
+        db=db,
+        name=request.name,
+        email=request.email,
+        phone=request.phone,
+        thread_id=request.thread_id
+    )
+    return result
 
 @app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    try:
-        result = await process_message(
-            message=request.message,
-            thread_id=request.thread_id
-        )
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def chat_endpoint(
+    request: ChatRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await process_message(
+        db=db,
+        message=request.message,
+        thread_id=request.thread_id
+    )
+    return result

@@ -19,6 +19,7 @@ dependencies = [
     "psycopg2-binary==2.9.11",
     "pydantic==2.12.4",
     "sqlalchemy==2.0.46",
+    "tavily-python>=0.7.19",
     "uvicorn==0.40.0",
 ]
 

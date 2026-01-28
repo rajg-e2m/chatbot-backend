@@ -1,18 +1,15 @@
-"""FastAPI RAG Chatbot - Main Application Entry Point"""
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.core.schemas import ChatRequest, ChatResponse, ScrapeRequest, ScrapeResponse
-from app.services import chat_service, scraper_service
+from app.core.schemas import ChatRequest, ChatResponse, ChatInitRequest, LeadRegisterRequest
+from app.services import process_message, init_chat, register_lead
 
 app = FastAPI(
-    title="FastAPI RAG Chatbot",
-    description="A RAG-powered chatbot with web scraping capabilities",
+    title="E2M Solutions Lead-Generating Chatbot",
+    description="A professional sales assistant for E2M Solutions",
     version="1.0.0"
 )
 
-# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS.split(","),
@@ -24,9 +21,8 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
     return {
-        "message": "FastAPI RAG Chatbot API",
+        "message": "E2M Solutions Lead-Generating Chatbot API",
         "version": "1.0.0",
         "docs": "/docs"
     }
@@ -34,28 +30,39 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "FastAPI RAG Chatbot"}
+    return {"status": "healthy", "service": "E2M-Chatbot"}
 
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """Chat endpoint - send a message and get AI response"""
+@app.post("/chat/init", response_model=ChatResponse)
+async def initialize_chat(request: ChatInitRequest):
     try:
-        result = await chat_service.process_message(
-            user_message=request.message,
-            conversation_id=request.conversation_id
+        result = await init_chat(thread_id=request.thread_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/chat/register")
+async def register(request: LeadRegisterRequest):
+    try:
+        result = await register_lead(
+            name=request.name,
+            email=request.email,
+            phone=request.phone,
+            thread_id=request.thread_id
         )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/scrape", response_model=ScrapeResponse)
-async def scrape(request: ScrapeRequest):
-    """Scrape a URL and add to knowledge base"""
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
     try:
-        result = await scraper_service.scrape_url(str(request.url))
+        result = await process_message(
+            message=request.message,
+            thread_id=request.thread_id
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

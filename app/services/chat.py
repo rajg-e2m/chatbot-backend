@@ -1,54 +1,76 @@
-"""Chat Service"""
+from sqlalchemy.future import select
+from app.core.database import SessionLocal
+from app.core.models import Conversation, Message, Lead
+from app.agents.chat_agent import chat
+from app.services.lead import create_lead
+from uuid import UUID
+import uuid
 
-from app.rag.agent import chat_agent
-from app.core.models import Conversation, Message
-from app.core.database import AsyncSessionLocal
-from uuid import UUID, uuid4
+async def init_chat(thread_id: str) -> dict:
+    """Initialize a chat session. Checks if lead info is required."""
+    with SessionLocal() as session:
+        query = select(Conversation).where(Conversation.id == uuid.UUID(thread_id))
+        conversation = session.execute(query).scalars().first()
+        
+        if not conversation or not conversation.lead_id:
+            return {
+                "requires_lead_info": True,
+                "message": "Can you please provide your phone number, email, and name first so that I can provide you further information?",
+                "thread_id": thread_id
+            }
+        
+    return {
+        "requires_lead_info": False,
+        "message": "Welcome back! How can I help you today?",
+        "thread_id": thread_id
+    }
 
-
-class ChatService:
-    """Service for handling chat operations"""
+async def register_lead(name: str, email: str, phone: str, thread_id: str) -> dict:
+    """Register a new lead and associate it with a conversation."""
+    lead = await create_lead(name=name, email=email, phone=phone)
     
-    async def process_message(self, user_message: str, conversation_id: UUID = None) -> dict:
-        """Process a chat message"""
-        # Create or get conversation
-        async with AsyncSessionLocal() as session:
-            if conversation_id:
-                conversation = await session.get(Conversation, conversation_id)
-            else:
-                conversation = Conversation(id=uuid4())
-                session.add(conversation)
-                await session.commit()
-                await session.refresh(conversation)
+    with SessionLocal() as session:
+        # Check if conversation exists, update it, or create a new one
+        conv_id = uuid.UUID(thread_id)
+        query = select(Conversation).where(Conversation.id == conv_id)
+        conversation = session.execute(query).scalars().first()
+        
+        if conversation:
+            conversation.lead_id = lead.id
+        else:
+            conversation = Conversation(id=conv_id, lead_id=lead.id)
+            session.add(conversation)
             
-            # Save user message
-            user_msg = Message(
-                conversation_id=conversation.id,
-                role="user",
-                content=user_message
-            )
-            session.add(user_msg)
-            await session.commit()
+        session.commit()
         
-        # Get response from chat agent
-        response = await chat_agent.chat(user_message, str(conversation_id))
-        
-        # Save assistant message
-        async with AsyncSessionLocal() as session:
-            assistant_msg = Message(
-                conversation_id=conversation.id,
-                role="assistant",
-                content=response["answer"]
-            )
-            session.add(assistant_msg)
-            await session.commit()
-        
-        return {
-            "conversation_id": conversation.id,
-            "message": response["answer"],
-            "sources": response.get("sources", [])
-        }
+    return {"registered": True, "thread_id": thread_id}
 
-
-# Global chat service instance
-chat_service = ChatService()
+async def process_message(message: str, thread_id: str) -> dict:
+    """Process a user message through the agent and store the conversation."""
+    # 1. Check if lead is registered
+    with SessionLocal() as session:
+        conv_id = uuid.UUID(thread_id)
+        query = select(Conversation).where(Conversation.id == conv_id)
+        conversation = session.execute(query).scalars().first()
+        
+        if not conversation or not conversation.lead_id:
+            return {
+                "error": "Lead registration required",
+                "requires_lead_info": True
+            }
+        
+        # 2. Store human message
+        human_msg = Message(conversation_id=conv_id, role="user", content=message)
+        session.add(human_msg)
+        session.commit()
+    
+    # 3. Get agent response
+    response = await chat(message, thread_id)
+    
+    # 4. Store assistant response
+    with SessionLocal() as session:
+        ai_msg = Message(conversation_id=conv_id, role="assistant", content=response["answer"])
+        session.add(ai_msg)
+        session.commit()
+        
+    return response

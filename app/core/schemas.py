@@ -1,55 +1,24 @@
-"""Pydantic Schemas for Request/Response Validation"""
-
-from pydantic import BaseModel, HttpUrl
-from datetime import datetime
-from uuid import UUID
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 
-# Document Schemas
-class DocumentBase(BaseModel):
-    url: HttpUrl
-    title: Optional[str] = None
-    content: str
+class ChatInitRequest(BaseModel):
+    thread_id: str
 
 
-class DocumentCreate(DocumentBase):
-    pass
-
-
-class DocumentResponse(DocumentBase):
-    id: UUID
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    
-    class Config:
-        from_attributes = True
-
-
-# Chat Schemas
-class ChatMessage(BaseModel):
-    role: str  # 'user' or 'assistant'
-    content: str
+class LeadRegisterRequest(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    thread_id: str
 
 
 class ChatRequest(BaseModel):
     message: str
-    conversation_id: Optional[UUID] = None
+    thread_id: str
 
 
 class ChatResponse(BaseModel):
-    conversation_id: UUID
-    message: str
-    sources: Optional[List[str]] = None
-
-
-# Scrape Schemas
-class ScrapeRequest(BaseModel):
-    url: HttpUrl
-
-
-class ScrapeResponse(BaseModel):
-    url: str
-    title: Optional[str] = None
-    content: str
-    status: str
+    answer: str
+    thread_id: str
+    requires_lead_info: bool = False

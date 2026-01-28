@@ -30,8 +30,12 @@ class Settings(BaseSettings):
     HF_MODEL: str = "meta-llama/Llama-2-7b-chat-hf"
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     
+    # Tavily
+    TAVILY_API_KEY: str
+    
     # Firecrawl
     FIRECRAWL_API_KEY: str
+    E2M_WEBSITE_URL: str = "https://www.e2msolutions.com/"
     
     # LangChain
     LANGCHAIN_TRACING_V2: bool = False

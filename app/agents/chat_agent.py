@@ -4,7 +4,6 @@ from app.core.config import settings
 from app.tools.faq_tool import search_faq_tool
 from app.tools.scraper_tool import scrape_website_tool
 from app.tools.intent_tool import classify_intent_tool
-from app.tools.search_tool import tavily_search_tool
 
 from langchain_core.messages import HumanMessage
 from app.agents.prompts import SYSTEM_PROMPT
@@ -31,13 +30,19 @@ async def get_checkpointer():
         await _checkpointer.setup()
     return _checkpointer
 
+async def close_checkpointer():
+    """Close the checkpointer if it exists."""
+    global _checkpointer
+    if _checkpointer is not None:
+        await _checkpointer.__aexit__(None, None, None)
+        _checkpointer = None
+
 async def create_e2m_agent():
     """Create the LangGraph agent with tools and checkpointing."""
     tools = [
         search_faq_tool,
         scrape_website_tool,
-        classify_intent_tool,
-        tavily_search_tool
+        classify_intent_tool
     ]
     
     llm = get_llm()

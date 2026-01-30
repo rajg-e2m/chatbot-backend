@@ -1,17 +1,27 @@
 from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.schemas import ChatRequest, ChatResponse, ChatInitRequest, LeadRegisterRequest
 from app.core.database import get_db
 from app.core.exceptions import ChatbotException
 from app.services import process_message, init_chat, register_lead
+from app.agents.chat_agent import close_checkpointer
 from fastapi.responses import JSONResponse
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    yield
+    # Shutdown
+    await close_checkpointer()
 
 app = FastAPI(
     title=settings.APP_NAME,
     description="A professional sales assistant for E2M Solutions",
-    version=settings.APP_VERSION
+    version=settings.APP_VERSION,
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -28,6 +38,16 @@ async def chatbot_exception_handler(request, exc: ChatbotException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.message},
+    )
+
+@app.exception_handler(Exception)
+async def debug_exception_handler(request, exc: Exception):
+    import traceback
+    print(f"DEBUG: Caught exception {type(exc).__name__}: {exc}")
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"error": str(exc), "type": type(exc).__name__},
     )
 
 @app.get("/")
@@ -63,14 +83,6 @@ async def register(
         thread_id=request.thread_id
     )
     return result
-
-@app.get("/admin/leads")
-async def get_leads(
-    db: AsyncSession = Depends(get_db)
-):
-    from app.services import get_all_leads
-    leads = await get_all_leads(db)
-    return leads
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(

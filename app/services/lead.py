@@ -34,9 +34,3 @@ async def update_lead_intent(db: AsyncSession, lead_id: UUID, intent: str):
         lead.intent_classification = intent
         await db.commit()
         await db.refresh(lead)
-
-async def get_all_leads(db: AsyncSession):
-    """Retrieve all leads from the database."""
-    query = select(Lead).order_by(Lead.created_at.desc())
-    result = await db.execute(query)
-    return result.scalars().all()

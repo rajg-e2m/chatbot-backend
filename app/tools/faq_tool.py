@@ -9,6 +9,8 @@ class FAQInput(BaseModel):
 
 def search_faq_func(question: str) -> str:
     """Search predefined FAQs for E2M Solutions."""
+    # Using SessionLocal (sync) because LangChain tools are often called synchronously
+    # and we want to avoid complex async management inside the tool function for now.
     with SessionLocal() as session:
         query = select(FAQ).where(FAQ.question.ilike(f"%{question}%"))
         result = session.execute(query).scalars().first()

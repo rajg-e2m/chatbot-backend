@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.tools.faq_tool import search_faq_tool
 from app.tools.scraper_tool import scrape_website_tool
 from app.tools.intent_tool import classify_intent_tool
+from app.tools.search_tool import tavily_search_tool
 
 from langchain_core.messages import HumanMessage
 from app.agents.prompts import SYSTEM_PROMPT
@@ -35,7 +36,8 @@ async def create_e2m_agent():
     tools = [
         search_faq_tool,
         scrape_website_tool,
-        classify_intent_tool
+        classify_intent_tool,
+        tavily_search_tool
     ]
     
     llm = get_llm()

@@ -1,11 +1,10 @@
-from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain.agents import create_agent
 from app.core.config import settings
 from app.tools.faq_tool import search_faq_tool
 from app.tools.scraper_tool import scrape_website_tool
 from app.tools.intent_tool import classify_intent_tool
-from app.tools.search_tool import tavily_tool
+
 from langchain_core.messages import HumanMessage
 from app.agents.prompts import SYSTEM_PROMPT
 from typing import Dict, Any
@@ -13,14 +12,7 @@ from typing import Dict, Any
 # Global agent instance for caching
 _agent = None
 
-def get_llm():
-    """Get the LLM instance based on configuration."""
-    llm_endpoint = HuggingFaceEndpoint(
-        repo_id=settings.HF_MODEL,
-        huggingfacehub_api_token=settings.HUGGINGFACE_API_KEY,
-        task="text-generation",
-    )
-    return ChatHuggingFace(llm=llm_endpoint)
+from app.core.llm import get_llm
 
 def get_checkpointer():
     """Create a PostgresSaver checkpointer."""
@@ -31,8 +23,7 @@ def create_e2m_agent():
     tools = [
         search_faq_tool,
         scrape_website_tool,
-        classify_intent_tool,
-        tavily_tool
+        classify_intent_tool
     ]
     
     llm = get_llm()

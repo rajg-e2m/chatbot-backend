@@ -1,7 +1,7 @@
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from app.agents.prompts import INTENT_CLASSIFICATION_PROMPT
-from app.agents.chat_agent import get_llm
+from app.core.llm import get_llm
 
 class IntentInput(BaseModel):
     message: str = Field(description="User message to classify intent")

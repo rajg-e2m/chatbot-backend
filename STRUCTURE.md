@@ -43,11 +43,6 @@ backend/
 - **models.py**: Database models (Document, Conversation, Message)
 - **schemas.py**: Pydantic schemas for request/response validation
 
-### RAG (`app/rag/`)
-- **agent.py**: RAG chat agent using LangChain, HuggingFace, and PGVector
-- **embeddings.py**: Embeddings manager for vector store operations
-- **prompts.py**: Prompt templates for RAG operations
-
 ### Services (`app/services/`)
 - **chat.py**: Chat service handling conversations and messages
 - **scraper.py**: Web scraping service using Firecrawl
@@ -57,7 +52,7 @@ FastAPI application with endpoints:
 - `GET /` - Root endpoint
 - `GET /health` - Health check
 - `POST /chat` - Chat with AI
-- `POST /scrape` - Scrape URL and add to knowledge base
+- `POST /chat` - Chat with AI
 
 ## Benefits of This Structure
 

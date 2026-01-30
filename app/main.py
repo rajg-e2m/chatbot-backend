@@ -64,6 +64,14 @@ async def register(
     )
     return result
 
+@app.get("/admin/leads")
+async def get_leads(
+    db: AsyncSession = Depends(get_db)
+):
+    from app.services import get_all_leads
+    leads = await get_all_leads(db)
+    return leads
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(
     request: ChatRequest,

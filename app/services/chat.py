@@ -17,13 +17,13 @@ async def init_chat(db: AsyncSession, thread_id: str) -> Dict[str, Any]:
     if not conversation or not conversation.lead_id:
         return {
             "requires_lead_info": True,
-            "message": "Can you please provide your phone number, email, and name first so that I can provide you further information?",
+            "answer": "Can you please provide your phone number, email, and name first so that I can provide you further information?",
             "thread_id": thread_id
         }
 
     return {
         "requires_lead_info": False,
-        "message": "Welcome back! How can I help you today?",
+        "answer": "Welcome back! How can I help you today?",
         "thread_id": thread_id
     }
 

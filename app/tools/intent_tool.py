@@ -12,14 +12,20 @@ def classify_intent_func(message: str) -> str:
         llm = get_llm()
         prompt = INTENT_CLASSIFICATION_PROMPT.format(message=message)
         response = llm.invoke(prompt)
-        content = response.content.upper()
+        content = response.content.upper().strip()
 
-        if "HIGH" in content:
+        # Look for the keywords specifically to avoid issues with conversational filler
+        if any(word in content for word in ["HIGH", "INTENT: HIGH"]):
             return "HIGH"
-        elif "MEDIUM" in content:
+        elif any(word in content for word in ["MEDIUM", "INTENT: MEDIUM"]):
             return "MEDIUM"
-        else:
+        elif any(word in content for word in ["LOW", "INTENT: LOW"]):
             return "LOW"
+
+        # Fallback to simple containment if exact match not found
+        if "HIGH" in content: return "HIGH"
+        if "MEDIUM" in content: return "MEDIUM"
+        return "LOW"
     except Exception:
         # Fallback to keyword search if LLM fails
         msg = message.lower()
